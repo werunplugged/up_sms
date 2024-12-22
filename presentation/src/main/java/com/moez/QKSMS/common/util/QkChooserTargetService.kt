@@ -44,6 +44,7 @@ class QkChooserTargetService : ChooserTargetService() {
         super.onCreate()
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onGetChooserTargets(targetActivityName: ComponentName?, matchedFilter: IntentFilter?): List<ChooserTarget> {
         return conversationRepo.getTopConversations()
                 .take(3)

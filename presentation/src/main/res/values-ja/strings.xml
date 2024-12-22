@@ -361,6 +361,9 @@
     </plurals>
     <string name="notification_message_failed_title">メッセージは送信されませんでした</string>
     <string name="notification_message_failed_text">%s へのメッセージの送信に失敗しました</string>
+    <string name="open_source_credit_title">Open Source Credit</string>
+    <string name="up_open_source_link_title">Unplugged Source Code</string>
+    <string name="up_open_source_link">https://github.com/werunplugged/up_sms</string>
     <string-array name="night_modes">
         <item>システム</item>
         <item>無効</item>

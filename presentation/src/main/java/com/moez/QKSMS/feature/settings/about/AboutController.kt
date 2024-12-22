@@ -19,6 +19,8 @@
 package dev.octoshrimpy.quik.feature.settings.about
 
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.isVisible
 import com.jakewharton.rxbinding2.view.clicks
 import dev.octoshrimpy.quik.BuildConfig
 import dev.octoshrimpy.quik.R
@@ -49,11 +51,31 @@ class AboutController : QkController<AboutView, Unit, AboutPresenter>(), AboutVi
         showBackButton(true)
     }
 
-    override fun preferenceClicks(): Observable<PreferenceView> = (0 until preferences.childCount)
-            .map { index -> preferences.getChildAt(index) }
-            .mapNotNull { view -> view as? PreferenceView }
+    override fun preferenceClicks(): Observable<PreferenceView> {
+        fun findPreferenceViews(viewGroup: ViewGroup): List<PreferenceView> {
+            val preferences = mutableListOf<PreferenceView>()
+            for (i in 0 until viewGroup.childCount) {
+                val child = viewGroup.getChildAt(i)
+                if (child is PreferenceView) {
+                    preferences.add(child)
+                } else if (child is ViewGroup) {
+                    preferences.addAll(findPreferenceViews(child)) // Recursively search in child ViewGroups
+                }
+            }
+            return preferences
+        }
+
+        val allPreferences = findPreferenceViews(preferences) // Get all PreferenceView elements
+        return allPreferences
             .map { preference -> preference.clicks().map { preference } }
-            .let { preferences -> Observable.merge(preferences) }
+            .let { Observable.merge(it) }
+    }
+
+    override fun toggleOpenSourceContentVisibility() {
+        val isVisible = openSourceContent.visibility == View.VISIBLE
+        openSourceContent.visibility = if (isVisible) View.GONE else View.VISIBLE
+        openSourceHeader.summary = if (isVisible) "Tap to expand" else "Tap to collapse"
+    }
 
     override fun render(state: Unit) {
         // No special rendering required

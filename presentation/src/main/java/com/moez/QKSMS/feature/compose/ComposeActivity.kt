@@ -369,6 +369,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         return super.getColoredMenuItems() + R.id.call
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when {
             requestCode == SelectContactRequestCode -> {
@@ -403,6 +404,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         super.onRestoreInstanceState(savedInstanceState)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() = backPressedIntent.onNext(Unit)
 
 }

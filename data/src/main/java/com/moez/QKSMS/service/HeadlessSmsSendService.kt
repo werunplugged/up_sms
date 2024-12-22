@@ -32,6 +32,7 @@ class HeadlessSmsSendService : IntentService("HeadlessSmsSendService") {
     @Inject lateinit var conversationRepo: ConversationRepository
     @Inject lateinit var sendMessage: SendMessage
 
+    @Deprecated("Deprecated in Java")
     override fun onHandleIntent(intent: Intent?) {
         if (intent?.action != TelephonyManager.ACTION_RESPOND_VIA_MESSAGE) return
 

@@ -364,6 +364,9 @@
     </plurals>
     <string name="notification_message_failed_title">訊息未傳送</string>
     <string name="notification_message_failed_text">給 %s 的訊息傳送失敗</string>
+    <string name="open_source_credit_title">Open Source Credit</string>
+    <string name="up_open_source_link_title">Unplugged Source Code</string>
+    <string name="up_open_source_link">https://github.com/werunplugged/up_sms</string>
     <string-array name="night_modes">
         <item>跟隨系統</item>
         <item>停用</item>

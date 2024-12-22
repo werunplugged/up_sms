@@ -406,16 +406,16 @@ class MainViewModel @Inject constructor(
 //                    navigator.showQksmsPlusActivity("main_banner")
 //                }
 
-        view.rateIntent
-                .autoDisposable(view.scope())
-                .subscribe {
-                    navigator.showRating()
-                    ratingManager.rate()
-                }
-
-        view.dismissRatingIntent
-                .autoDisposable(view.scope())
-                .subscribe { ratingManager.dismiss() }
+//        view.rateIntent
+//                .autoDisposable(view.scope())
+//                .subscribe {
+//                    navigator.showRating()
+//                    ratingManager.rate()
+//                }
+//
+//        view.dismissRatingIntent
+//                .autoDisposable(view.scope())
+//                .subscribe { ratingManager.dismiss() }
 
         view.conversationsSelectedIntent
                 .withLatestFrom(state) { selection, state ->

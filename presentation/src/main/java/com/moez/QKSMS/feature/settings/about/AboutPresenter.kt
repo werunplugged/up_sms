@@ -18,11 +18,12 @@
  */
 package dev.octoshrimpy.quik.feature.settings.about
 
+import android.util.Log
+import com.uber.autodispose.android.lifecycle.scope
+import com.uber.autodispose.autoDisposable
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkPresenter
-import com.uber.autodispose.android.lifecycle.scope
-import com.uber.autodispose.autoDisposable
 import javax.inject.Inject
 
 class AboutPresenter @Inject constructor(
@@ -33,20 +34,23 @@ class AboutPresenter @Inject constructor(
         super.bindIntents(view)
 
         view.preferenceClicks()
-                .autoDisposable(view.scope())
-                .subscribe { preference ->
-                    when (preference.id) {
-                        R.id.developer -> navigator.showDeveloper()
+            .autoDisposable(view.scope())
+            .subscribe { preference ->
+                when (preference.id) {
+                    R.id.openSourceHeader -> view.toggleOpenSourceContentVisibility()
 
-                        R.id.source -> navigator.showSourceCode()
+                    R.id.up_open_source_link -> navigator.showUpOpenSourceLink()
 
-                        R.id.changelog -> navigator.showChangelog()
+                    R.id.developer -> navigator.showDeveloper()
 
-                        R.id.contact -> navigator.showSupport()
+                    R.id.source -> navigator.showSourceCode()
 
-                        R.id.license -> navigator.showLicense()
-                    }
+                    R.id.changelog -> navigator.showChangelog()
+
+                    R.id.contact -> navigator.showSupport()
+
+                    R.id.license -> navigator.showLicense()
                 }
+            }
     }
-
 }

@@ -47,5 +47,4 @@ abstract class Interactor<in Params> : Disposable {
     override fun isDisposed(): Boolean {
         return disposables.isDisposed
     }
-
 }

@@ -98,5 +98,4 @@ class SwipeActionsController : QkController<SwipeActionsView, SwipeActionsState,
         leftIcon.setImageResource(state.leftIcon)
         leftLabel.text = state.leftLabel
     }
-
 }

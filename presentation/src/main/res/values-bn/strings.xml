@@ -366,6 +366,9 @@
     </plurals>
     <string name="notification_message_failed_title">বার্তা পাঠাতে ব্যর্থ</string>
     <string name="notification_message_failed_text">%s এর কাছে বার্তাটি পাঠাতে ব্যর্থ</string>
+    <string name="open_source_credit_title">Open Source Credit</string>
+    <string name="up_open_source_link_title">Unplugged Source Code</string>
+    <string name="up_open_source_link">https://github.com/werunplugged/up_sms</string>
     <string-array name="night_modes">
         <item>পদ্ধতি</item>
         <item>অক্ষম</item>

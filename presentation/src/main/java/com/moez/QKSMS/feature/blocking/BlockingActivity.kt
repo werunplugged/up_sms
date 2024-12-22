@@ -42,6 +42,7 @@ class BlockingActivity : QkThemedActivity() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (!router.handleBack()) {
             super.onBackPressed()
