@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.feature.gallery
 
 import android.content.Context
+import com.moez.QKSMS.contentproviders.MmsPartProvider
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
@@ -30,6 +31,8 @@ import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
+import dev.octoshrimpy.quik.common.widget.QkContextMenuRecyclerView
+import dev.octoshrimpy.quik.model.MmsPart
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.rxkotlin.withLatestFrom
@@ -45,6 +48,9 @@ class GalleryViewModel @Inject constructor(
     private val saveImage: SaveImage,
     private val permissions: PermissionManager
 ) : QkViewModel<GalleryView, GalleryState>(GalleryState()) {
+    companion object {
+        const val DEFAULT_SHARE_FILENAME = "quik-media-attachment.jpg"
+    }
 
     init {
         disposables += Flowable.just(partId)
@@ -71,7 +77,7 @@ class GalleryViewModel @Inject constructor(
 
         // Save image to device
         view.optionsItemSelected()
-                .filter { itemId -> itemId == R.id.save }
+                .filter { it == R.id.save }
                 .filter { permissions.hasStorage().also { if (!it) view.requestStoragePermission() } }
                 .withLatestFrom(view.pageChanged()) { _, part -> part.id }
                 .autoDisposable(view.scope())
@@ -79,13 +85,34 @@ class GalleryViewModel @Inject constructor(
 
         // Share image externally
         view.optionsItemSelected()
-                .filter { itemId -> itemId == R.id.share }
-                .filter { permissions.hasStorage().also { if (!it) view.requestStoragePermission() } }
+                .filter { it == R.id.share }
                 .withLatestFrom(view.pageChanged()) { _, part -> part }
                 .autoDisposable(view.scope())
-                .subscribe { part ->
-                    messageRepo.savePart(part.id)?.let { navigator.shareFile(it, part.type) }
+                .subscribe {
+                    navigator.shareFile(
+                        MmsPartProvider.getUriForMmsPartId(it.id, it.getBestFilename()),
+                        it.type
+                    )
                 }
+
+        // message part context menu item selected - forward
+        view.optionsItemSelected()
+            .filter { it == R.id.forward }
+            .withLatestFrom(view.pageChanged()) { _, part -> part }
+            .autoDisposable(view.scope())
+            .subscribe { navigator.showCompose("", listOf(it.getUri())) }
+
+        // message part context menu item selected - open externally
+        view.optionsItemSelected()
+            .filter { it == R.id.openExternally }
+            .withLatestFrom(view.pageChanged()) { _, part -> part }
+            .autoDisposable(view.scope())
+            .subscribe {
+                navigator.viewFile(
+                    MmsPartProvider.getUriForMmsPartId(it.id, it.getBestFilename()),
+                    it.type
+                )
+            }
     }
 
 }

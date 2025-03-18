@@ -98,7 +98,10 @@ class SettingsPresenter @Inject constructor(
                 .subscribe { id -> newState { copy(sendDelaySummary = delayedSendingLabels[id], sendDelayId = id) } }
 
         disposables += prefs.delivery.asObservable()
-                .subscribe { enabled -> newState { copy(deliveryEnabled = enabled) } }
+            .subscribe { enabled -> newState { copy(deliveryEnabled = enabled) } }
+
+        disposables += prefs.unreadAtTop.asObservable()
+            .subscribe { enabled -> newState { copy(unreadAtTopEnabled = enabled) } }
 
         disposables += prefs.signature.asObservable()
                 .subscribe { signature -> newState { copy(signature = signature) } }
@@ -113,7 +116,10 @@ class SettingsPresenter @Inject constructor(
                 .subscribe { autoColor -> newState { copy(autoColor = autoColor) } }
 
         disposables += prefs.systemFont.asObservable()
-                .subscribe { enabled -> newState { copy(systemFontEnabled = enabled) } }
+            .subscribe { enabled -> newState { copy(systemFontEnabled = enabled) } }
+
+        disposables += prefs.showStt.asObservable()
+            .subscribe { enabled -> newState { copy(showStt = enabled) } }
 
         disposables += prefs.unicode.asObservable()
                 .subscribe { enabled -> newState { copy(stripUnicodeEnabled = enabled) } }
@@ -134,6 +140,19 @@ class SettingsPresenter @Inject constructor(
                     val index = mmsSizeIds.indexOf(maxMmsSize)
                     newState { copy(maxMmsSizeSummary = mmsSizeLabels[index], maxMmsSizeId = maxMmsSize) }
                 }
+
+        val messageLinkHandlingLabels = context.resources.getStringArray(R.array.messageLinkHandlings)
+        val messageLinkHandlingIds = context.resources.getIntArray(R.array.messageLinkHandling_ids)
+        disposables += prefs.messageLinkHandling.asObservable()
+            .subscribe { messageLinkHandlingId ->
+                val index = messageLinkHandlingIds.indexOf(messageLinkHandlingId)
+                newState {
+                    copy(
+                        messageLinkHandlingSummary = messageLinkHandlingLabels[index],
+                        messageLinkHandlingId = messageLinkHandlingId
+                    )
+                }
+            }
 
         disposables += syncRepo.syncProgress
                 .sample(16, TimeUnit.MILLISECONDS)
@@ -178,6 +197,8 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.delivery -> prefs.delivery.set(!prefs.delivery.get())
 
+                        R.id.unreadAtTop -> prefs.unreadAtTop.set(!prefs.unreadAtTop.get())
+
                         R.id.signature -> view.showSignatureDialog(prefs.signature.get())
 
                         R.id.textSize -> view.showTextSizePicker()
@@ -189,6 +210,12 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.systemFont -> prefs.systemFont.set(!prefs.systemFont.get())
 
+                        R.id.showStt -> {
+                            prefs.showStt.set(!prefs.showStt.get())
+                            prefs.showSttOffsetX.set(Float.MIN_VALUE)
+                            prefs.showSttOffsetY.set(Float.MIN_VALUE)
+                        }
+
                         R.id.unicode -> prefs.unicode.set(!prefs.unicode.get())
 
                         R.id.mobileOnly -> prefs.mobileOnly.set(!prefs.mobileOnly.get())
@@ -198,6 +225,8 @@ class SettingsPresenter @Inject constructor(
                         R.id.longAsMms -> prefs.longAsMms.set(!prefs.longAsMms.get())
 
                         R.id.mmsSize -> view.showMmsSizePicker()
+
+                        R.id.messsageLinkHandling -> view.showMessageLinkHandlingDialogPicker()
 
                         R.id.sync -> syncMessages.execute(Unit)
 
@@ -289,6 +318,10 @@ class SettingsPresenter @Inject constructor(
         view.mmsSizeSelected()
                 .autoDisposable(view.scope())
                 .subscribe(prefs.mmsSize::set)
+
+        view.messageLinkHandlingSelected()
+            .autoDisposable(view.scope())
+            .subscribe(prefs.messageLinkHandling::set)
     }
 
 }

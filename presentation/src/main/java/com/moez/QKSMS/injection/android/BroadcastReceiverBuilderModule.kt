@@ -40,6 +40,8 @@ import dev.octoshrimpy.quik.receiver.SmsReceiver
 import dev.octoshrimpy.quik.receiver.SmsSentReceiver
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
+import dev.octoshrimpy.quik.receiver.SpeakThreadsReceiver
+import dev.octoshrimpy.quik.receiver.StartActivityFromWidgetReceiver
 
 @Module
 abstract class BroadcastReceiverBuilderModule {
@@ -67,6 +69,14 @@ abstract class BroadcastReceiverBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector()
     abstract fun bindMarkReadReceiver(): MarkReadReceiver
+
+    @ActivityScope
+    @ContributesAndroidInjector()
+    abstract fun bindSpeakThreadsReceiver(): SpeakThreadsReceiver
+
+    @ActivityScope
+    @ContributesAndroidInjector()
+    abstract fun bindStartActivityFromWidgetReceiver(): StartActivityFromWidgetReceiver
 
     @ActivityScope
     @ContributesAndroidInjector()

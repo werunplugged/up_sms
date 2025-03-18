@@ -38,6 +38,7 @@ interface MainView : QkView<MainState> {
 //    val rateIntent: Observable<*>
     val conversationsSelectedIntent: Observable<List<Long>>
     val confirmDeleteIntent: Observable<List<Long>>
+    val renameConversationIntent: Observable<String>
     val swipeConversationIntent: Observable<Pair<Long, Int>>
     val changelogMoreIntent: Observable<*>
     val undoArchiveIntent: Observable<Unit>
@@ -47,11 +48,13 @@ interface MainView : QkView<MainState> {
     fun requestPermissions()
     fun clearSearch()
     fun clearSelection()
+    fun toggleSelectAll()
     fun themeChanged()
     fun showBlockingDialog(conversations: List<Long>, block: Boolean)
     fun showDeleteDialog(conversations: List<Long>)
+    fun showRenameDialog(conversationName: String)
     fun showChangelog(changelog: ChangelogManager.CumulativeChangelog)
-    fun showArchivedSnackbar()
+    fun showArchivedSnackbar(countConversationsArchived: Int)
 
 }
 

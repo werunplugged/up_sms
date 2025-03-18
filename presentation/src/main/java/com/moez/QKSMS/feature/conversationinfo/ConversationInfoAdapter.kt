@@ -24,7 +24,7 @@ import javax.inject.Inject
 class ConversationInfoAdapter @Inject constructor(
     private val context: Context,
     private val colors: Colors
-) : QkAdapter<ConversationInfoItem>() {
+) : QkAdapter<ConversationInfoItem, QkViewHolder>() {
 
     val recipientClicks: Subject<Long> = PublishSubject.create()
     val recipientLongClicks: Subject<Long> = PublishSubject.create()
@@ -94,7 +94,6 @@ class ConversationInfoAdapter @Inject constructor(
             }
 
             is ConversationInfoSettings -> {
-                holder.groupName.isVisible = item.recipients.size > 1
                 holder.groupName.summary = item.name
 
                 holder.notifications.isEnabled = !item.blocked

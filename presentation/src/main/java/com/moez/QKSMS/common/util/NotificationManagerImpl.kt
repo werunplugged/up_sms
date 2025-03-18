@@ -51,6 +51,8 @@ import dev.octoshrimpy.quik.receiver.MarkArchivedReceiver
 import dev.octoshrimpy.quik.receiver.MarkReadReceiver
 import dev.octoshrimpy.quik.receiver.MarkSeenReceiver
 import dev.octoshrimpy.quik.receiver.RemoteMessagingReceiver
+import dev.octoshrimpy.quik.receiver.SpeakThreadsReceiver
+import dev.octoshrimpy.quik.repository.ContactRepository
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.util.GlideApp
@@ -69,7 +71,8 @@ class NotificationManagerImpl @Inject constructor(
     private val prefs: Preferences,
     private val messageRepo: MessageRepository,
     private val permissions: PermissionManager,
-    private val phoneNumberUtils: PhoneNumberUtils
+    private val phoneNumberUtils: PhoneNumberUtils,
+    private val contactRepo: ContactRepository,
 ) : dev.octoshrimpy.quik.manager.NotificationManager {
 
     companion object {
@@ -144,10 +147,26 @@ class NotificationManagerImpl @Inject constructor(
                 .setAutoCancel(true)
                 .setContentIntent(contentPI)
                 .setDeleteIntent(seenPI)
-                .setSound(ringtone)
                 .setLights(Color.WHITE, 500, 2000)
                 .setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
                 .setVibrate(if (prefs.vibration(threadId).get()) VIBRATE_PATTERN else longArrayOf(0))
+
+        // if preference set to silence notifications if no recipients in contacts
+        if (prefs.silentNotContact.get() && run {
+            val msgRecipientNumbers = conversation.recipients.map { it.address }
+
+            // true if any message recipients are in device's contacts
+            !contactRepo
+                .getUnmanagedAllContacts()
+                .flatMap { it.numbers }
+                .map { it.address }
+                .any { contactNumber ->
+                    msgRecipientNumbers.any { phoneNumberUtils.compare(contactNumber, it) }
+                }
+        })
+            notification.setSilent(true)
+        else
+            notification.setSound(ringtone)
 
         // Tell the notification if it's a group message
         val sender = Person.Builder()
@@ -189,6 +208,12 @@ class NotificationManagerImpl @Inject constructor(
                 messagingStyle.addMessage(this)
             }
         }
+
+        // remove system generated contextual actions (they're generated from message links) unless
+        // the user has explicitly set to allow message links
+        notification.setAllowSystemGeneratedContextualActions(
+            (prefs.messageLinkHandling.get() == Preferences.MESSAGE_LINK_HANDLING_ALLOW)
+        )
 
         // Set the large icon
         val avatar = conversation.recipients.takeIf { it.size == 1 }
@@ -295,6 +320,14 @@ class NotificationManagerImpl @Inject constructor(
                                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                             NotificationCompat.Action.Builder(R.drawable.ic_call_white_24dp, actionLabels[action], pi)
                                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_CALL).build()
+                        }
+
+                        Preferences.NOTIFICATION_ACTION_SPEAK -> {
+                            val intent = Intent(context, SpeakThreadsReceiver::class.java).putExtra("threadId", threadId)
+                            val pi = PendingIntent.getBroadcast(context, 0, intent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                            NotificationCompat.Action.Builder(R.drawable.ic_speaker_black_24dp, actionLabels[action], pi)
+                                .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_NONE).build()
                         }
 
                         else -> null

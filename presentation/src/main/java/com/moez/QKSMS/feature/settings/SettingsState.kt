@@ -34,10 +34,14 @@ data class SettingsState(
     val sendDelaySummary: String = "",
     val sendDelayId: Int = 0,
     val deliveryEnabled: Boolean = false,
+    val unreadAtTopEnabled: Boolean = false,
     val signature: String = "",
     val textSizeSummary: String = "",
     val textSizeId: Int = Preferences.TEXT_SIZE_NORMAL,
     val systemFontEnabled: Boolean = true,
+    val showStt: Boolean = true,
+    val showSttOffsetX: Float = Float.MIN_VALUE,
+    val showSttOffsetY: Float = Float.MAX_VALUE,
     val splitSmsEnabled: Boolean = false,
     val stripUnicodeEnabled: Boolean = false,
     val mobileOnly: Boolean = false,
@@ -45,5 +49,7 @@ data class SettingsState(
     val longAsMms: Boolean = false,
     val maxMmsSizeSummary: String = "100KB",
     val maxMmsSizeId: Int = 100,
+    val messageLinkHandlingSummary: String = "Ask before opening",
+    val messageLinkHandlingId: Int = 2,
     val syncProgress: SyncRepository.SyncProgress = SyncRepository.SyncProgress.Idle
 )
