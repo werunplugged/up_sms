@@ -20,10 +20,21 @@
     <application>
         <provider
             android:name="com.moez.QKSMS.contentproviders.MmsPartProvider"
-            android:authorities="dev.octoshrimpy.quik.mmspart"
+            android:authorities="${applicationId}.mmspart"
             android:enabled="true"
             android:exported="false"
             android:grantUriPermissions="true">
+        </provider>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.messagesText"
+            android:enabled="true"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/messages_text_file_provider_paths" />
         </provider>
     </application>
 

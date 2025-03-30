@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with QUIK.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.moez.QKSMS.manager
+package dev.octoshrimpy.quik.worker
 
 import android.content.Context
 import androidx.work.Constraints
@@ -25,30 +25,31 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.moez.QKSMS.manager.MediaRecorderManager.AUDIO_FILE_PREFIX
-import dev.octoshrimpy.quik.repository.ScheduledMessageRepositoryImpl
+import com.moez.QKSMS.util.Constants
+import com.moez.QKSMS.manager.MediaRecorderManager
+import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
 import java.io.File
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-class HousekeepingWorkManager(appContext: Context, workerParams: WorkerParameters)
-    : Worker(appContext, workerParams) {
-
+class HousekeepingWorker(appContext: Context, workerParams: WorkerParameters)
+: Worker(appContext, workerParams) {
     companion object {
-        private val WORKER_TAG: String = HousekeepingWorkManager::class.java.simpleName
+        private val WORKER_TAG: String = HousekeepingWorker::class.java.simpleName
 
         fun register(context: Context) {
             // don't check return value because, well, we can't do much about a failure
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORKER_TAG,
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 PeriodicWorkRequest.Builder(
-                    HousekeepingWorkManager::class.java,
-                    24,
-                    TimeUnit.HOURS
+                    HousekeepingWorker::class.java,
+                    1,
+                    TimeUnit.DAYS
                 )
                     .setConstraints(
                         Constraints.Builder()
-                            // idle device constraint kinda guarantees quik won't be in use
+                            // idle device constraint helps guarantees quik won't be in use
                             // as files are deleted (primarily for deleting audio recordings)
                             .setRequiresDeviceIdle(true)
                             // good citizens don't use up low batteries
@@ -57,25 +58,31 @@ class HousekeepingWorkManager(appContext: Context, workerParams: WorkerParameter
                     )
                     .addTag(WORKER_TAG)
                     .build()
-                )
-            }
-
-            fun cancel(context: Context) {
-                WorkManager.getInstance(context).cancelUniqueWork(WORKER_TAG)
-            }
+            )
         }
 
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORKER_TAG)
+        }
+    }
+
+    @Inject lateinit var scheduledMessageRepository: ScheduledMessageRepository
+
     override fun doWork(): Result {
+        val twoHoursAgo = (System.currentTimeMillis() - (2 * 60 * 60 * 1000))
+
         removeOrphanedScheduledMessageAttachmentFiles()
 
-        removeOrphanedComposeAudioRecording()
+        removeOrphanedComposeAudioRecordings(twoHoursAgo)
+
+        removeSavedMessagesTexts(twoHoursAgo)
 
         return Result.success()
     }
 
     private fun removeOrphanedScheduledMessageAttachmentFiles() {
         // get list of all scheduled message ids
-        val scheduledMessageIds = ScheduledMessageRepositoryImpl().getAllScheduledMessageIdsSnapshot()
+        val scheduledMessageIds = scheduledMessageRepository.getAllScheduledMessageIdsSnapshot()
 
         // remove orphaned scheduled message dirs in files dir
         File(applicationContext.filesDir,"")
@@ -89,15 +96,21 @@ class HousekeepingWorkManager(appContext: Context, workerParams: WorkerParameter
             ?.forEach { it.deleteRecursively() }
     }
 
-    private fun removeOrphanedComposeAudioRecording() {
+    private fun removeOrphanedComposeAudioRecordings(removeOlderThan: Long) =
         // find recording files in cache dir
         applicationContext.cacheDir.listFiles { entry ->
             entry.isFile &&
-                    entry.name.startsWith(AUDIO_FILE_PREFIX) &&
-                    entry.name.endsWith(MediaRecorderManager.AUDIO_FILE_SUFFIX)
-        }
-        // delete recording file
-        ?.forEach { it.delete() }
-    }
+                    entry.name.startsWith(MediaRecorderManager.AUDIO_FILE_PREFIX) &&
+                    entry.name.endsWith(MediaRecorderManager.AUDIO_FILE_SUFFIX) &&
+                    (entry.lastModified() < removeOlderThan)
+        }?.forEach { it.delete() }  // delete recording file
+
+    private fun removeSavedMessagesTexts(removeOlderThan: Long) =
+        // find saved message text files in cache dir
+        applicationContext.cacheDir.listFiles { entry ->
+            entry.isFile &&
+                    entry.name.startsWith(Constants.SAVED_MESSAGE_TEXT_FILE_PREFIX) &&
+                    (entry.lastModified() < removeOlderThan)
+        }?.forEach { it.delete() }  // delete message text file
 
 }

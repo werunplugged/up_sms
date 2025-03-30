@@ -89,12 +89,14 @@ interface ComposeView : QkView<ComposeState> {
     val recordAudioMsgRecordVisible: Subject<Boolean>
     val recordAudioRecord: Subject<MicInputCloudView.ViewState>
     val recordAudioChronometer: Subject<Boolean>
+//    val saveMessagesTextIntent: Subject<String>
 
     fun clearSelection()
     fun toggleSelectAll()
     fun expandMessages(messageIds: List<Long>, expand: Boolean)
     fun showDetails(details: String)
     fun showMessageLinkAskDialog(uri: Uri)
+//    fun showSaveMessagesFilenameDialog(filename: String)
     fun requestDefaultSms()
     fun requestStoragePermission()
     fun requestRecordAudioPermission()
@@ -112,5 +114,6 @@ interface ComposeView : QkView<ComposeState> {
     fun showDeleteDialog( messages: List<Long>)
     fun showClearCurrentMessageDialog()
     fun startSpeechRecognition()
+    fun focusMessage()
 
 }
