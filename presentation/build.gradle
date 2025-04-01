@@ -30,8 +30,8 @@ android {
         applicationId 'com.unplugged.sms'
         minSdkVersion 23
         targetSdkVersion 33
-        versionCode 2229
-        versionName '4.1.1'
+        versionCode 2230
+        versionName '4.1.2'
         setProperty("archivesBaseName", "UPSms-v${versionName}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
