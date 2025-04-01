@@ -370,7 +370,7 @@
         <item>سامانه</item>
         <item>غیرفعال</item>
         <item>همیشه روشن</item>
-        <item>خودکار</item>
+<!--        <item>خودکار</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>نمایش نام و پیام</item>

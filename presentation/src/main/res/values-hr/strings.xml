@@ -375,7 +375,7 @@
         <item>Sustav</item>
         <item>Onemogućeno</item>
         <item>Uvijek uključeno</item>
-        <item>Automatski</item>
+<!--        <item>Automatski</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Prikaži ime i poruku</item>

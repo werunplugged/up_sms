@@ -39,7 +39,7 @@ data class SettingsState(
     val textSizeSummary: String = "",
     val textSizeId: Int = Preferences.TEXT_SIZE_NORMAL,
     val systemFontEnabled: Boolean = true,
-    val showStt: Boolean = true,
+    val showStt: Boolean = false,
     val showSttOffsetX: Float = Float.MIN_VALUE,
     val showSttOffsetY: Float = Float.MAX_VALUE,
     val splitSmsEnabled: Boolean = false,

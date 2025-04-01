@@ -52,19 +52,19 @@ class NightModeManager @Inject constructor(
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             }
 
-            Preferences.NIGHT_MODE_AUTO -> {
-                val nightStartTime = getPreviousInstanceOfTime(prefs.nightStart.get())
-                val nightEndTime = getPreviousInstanceOfTime(prefs.nightEnd.get())
-
-                // If the last nightStart was more recent than the last nightEnd, then it's night time
-                val night = nightStartTime > nightEndTime
-                prefs.night.set(night)
-                AppCompatDelegate.setDefaultNightMode(when (night) {
-                    true -> AppCompatDelegate.MODE_NIGHT_YES
-                    false -> AppCompatDelegate.MODE_NIGHT_NO
-                })
-                widgetManager.updateTheme()
-            }
+//            Preferences.NIGHT_MODE_AUTO -> {
+//                val nightStartTime = getPreviousInstanceOfTime(prefs.nightStart.get())
+//                val nightEndTime = getPreviousInstanceOfTime(prefs.nightEnd.get())
+//
+//                // If the last nightStart was more recent than the last nightEnd, then it's night time
+//                val night = nightStartTime > nightEndTime
+//                prefs.night.set(night)
+//                AppCompatDelegate.setDefaultNightMode(when (night) {
+//                    true -> AppCompatDelegate.MODE_NIGHT_YES
+//                    false -> AppCompatDelegate.MODE_NIGHT_NO
+//                })
+//                widgetManager.updateTheme()
+//            }
         }
     }
 
@@ -83,86 +83,86 @@ class NightModeManager @Inject constructor(
             widgetManager.updateTheme()
         }
 
-        updateAlarms()
+//        updateAlarms()
     }
 
-    fun setNightStart(hour: Int, minute: Int) {
-        prefs.nightStart.set("$hour:$minute")
-        updateAlarms()
-    }
+//    fun setNightStart(hour: Int, minute: Int) {
+//        prefs.nightStart.set("$hour:$minute")
+//        updateAlarms()
+//    }
+//
+//    fun setNightEnd(hour: Int, minute: Int) {
+//        prefs.nightEnd.set("$hour:$minute")
+//        updateAlarms()
+//    }
 
-    fun setNightEnd(hour: Int, minute: Int) {
-        prefs.nightEnd.set("$hour:$minute")
-        updateAlarms()
-    }
-
-    private fun updateAlarms() {
-        val dayCalendar = createCalendar(prefs.nightEnd.get())
-        val day = Intent(context, NightModeReceiver::class.java)
-        val dayIntent = PendingIntent.getBroadcast(context, 0, day, PendingIntent.FLAG_IMMUTABLE)
-
-        val nightCalendar = createCalendar(prefs.nightStart.get())
-        val night = Intent(context, NightModeReceiver::class.java)
-        val nightIntent = PendingIntent.getBroadcast(context, 1, night, PendingIntent.FLAG_IMMUTABLE)
-
-        context.sendBroadcast(day)
-        context.sendBroadcast(night)
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (prefs.nightMode.get() == Preferences.NIGHT_MODE_AUTO) {
-            alarmManager.setInexactRepeating(
-                    AlarmManager.RTC_WAKEUP,
-                    dayCalendar.timeInMillis,
-                    AlarmManager.INTERVAL_DAY,
-                    dayIntent
-            )
-            alarmManager.setInexactRepeating(
-                    AlarmManager.RTC_WAKEUP,
-                    nightCalendar.timeInMillis,
-                    AlarmManager.INTERVAL_DAY,
-                    nightIntent
-            )
-        } else {
-            alarmManager.cancel(dayIntent)
-            alarmManager.cancel(nightIntent)
-        }
-    }
-
-    private fun createCalendar(time: String): Calendar {
-        val calendar = parseTime(time)
-
-        return Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
-            set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
-        }
-    }
+//    private fun updateAlarms() {
+//        val dayCalendar = createCalendar(prefs.nightEnd.get())
+//        val day = Intent(context, NightModeReceiver::class.java)
+//        val dayIntent = PendingIntent.getBroadcast(context, 0, day, PendingIntent.FLAG_IMMUTABLE)
+//
+//        val nightCalendar = createCalendar(prefs.nightStart.get())
+//        val night = Intent(context, NightModeReceiver::class.java)
+//        val nightIntent = PendingIntent.getBroadcast(context, 1, night, PendingIntent.FLAG_IMMUTABLE)
+//
+//        context.sendBroadcast(day)
+//        context.sendBroadcast(night)
+//
+//        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+//        if (prefs.nightMode.get() == Preferences.NIGHT_MODE_AUTO) {
+//            alarmManager.setInexactRepeating(
+//                    AlarmManager.RTC_WAKEUP,
+//                    dayCalendar.timeInMillis,
+//                    AlarmManager.INTERVAL_DAY,
+//                    dayIntent
+//            )
+//            alarmManager.setInexactRepeating(
+//                    AlarmManager.RTC_WAKEUP,
+//                    nightCalendar.timeInMillis,
+//                    AlarmManager.INTERVAL_DAY,
+//                    nightIntent
+//            )
+//        } else {
+//            alarmManager.cancel(dayIntent)
+//            alarmManager.cancel(nightIntent)
+//        }
+//    }
+//
+//    private fun createCalendar(time: String): Calendar {
+//        val calendar = parseTime(time)
+//
+//        return Calendar.getInstance().apply {
+//            set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
+//            set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
+//        }
+//    }
 
     /**
      * Parses the hour and minute out of the [time], which should be formatted h:mm
      */
-    fun parseTime(time: String): Calendar {
-        return tryOrNull {
-            val parsedTime = SimpleDateFormat("H:mm", Locale.US).parse(time)
-            Calendar.getInstance().apply { this.time = parsedTime }
-        } ?: tryOrNull {
-            // Parse the legacy timestamp format (<=3.1.3)
-            val parsedTime = SimpleDateFormat("h:mm a", Locale.US).parse(time)
-            Calendar.getInstance().apply { this.time = parsedTime }
-        } ?: Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 18) }
-    }
+//    fun parseTime(time: String): Calendar {
+//        return tryOrNull {
+//            val parsedTime = SimpleDateFormat("H:mm", Locale.US).parse(time)
+//            Calendar.getInstance().apply { this.time = parsedTime }
+//        } ?: tryOrNull {
+//            // Parse the legacy timestamp format (<=3.1.3)
+//            val parsedTime = SimpleDateFormat("h:mm a", Locale.US).parse(time)
+//            Calendar.getInstance().apply { this.time = parsedTime }
+//        } ?: Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 18) }
+//    }
 
     /**
      * Returns a Calendar set to the most recent occurrence of this time
      */
-    private fun getPreviousInstanceOfTime(time: String): Calendar {
-        val currentTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10)
-        val calendar = createCalendar(time)
-
-        while (calendar.timeInMillis > currentTime) {
-            calendar.add(Calendar.DAY_OF_YEAR, -1)
-        }
-
-        return calendar
-    }
+//    private fun getPreviousInstanceOfTime(time: String): Calendar {
+//        val currentTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10)
+//        val calendar = createCalendar(time)
+//
+//        while (calendar.timeInMillis > currentTime) {
+//            calendar.add(Calendar.DAY_OF_YEAR, -1)
+//        }
+//
+//        return calendar
+//    }
 
 }

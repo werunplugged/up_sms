@@ -375,7 +375,7 @@
         <item>Систем</item>
         <item>Онемогућено</item>
         <item>Увек укључено</item>
-        <item>Аутоматски</item>
+<!--        <item>Аутоматски</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Прикажи име и поруку</item>

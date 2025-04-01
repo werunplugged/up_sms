@@ -370,7 +370,7 @@
         <item>System</item>
         <item>Deaktivert</item>
         <item>Aktivert</item>
-        <item>Automatisk</item>
+<!--        <item>Automatisk</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Vis navn og melding</item>

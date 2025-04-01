@@ -380,7 +380,7 @@
         <item>Dle systému</item>
         <item>Vypnuto</item>
         <item>Vždy zapnuto</item>
-        <item>Automaticky</item>
+<!--        <item>Automaticky</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Zobrazit jméno a text zprávy</item>

@@ -370,7 +370,7 @@
         <item>प्रणाली</item>
         <item>अक्षम करें</item>
         <item>हमेशा चालू</item>
-        <item>स्वचालित</item>
+<!--        <item>स्वचालित</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>नाम व संदेश दिखाएं</item>

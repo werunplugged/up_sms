@@ -365,7 +365,7 @@
         <item>Theo hệ thống</item>
         <item>Vô hiệu hoá</item>
         <item>Luôn bật</item>
-        <item>Tự động</item>
+<!--        <item>Tự động</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Hiển thị tên và tin nhắn</item>

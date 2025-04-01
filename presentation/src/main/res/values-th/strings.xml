@@ -365,7 +365,7 @@
         <item>System</item>
         <item>Disabled</item>
         <item>Always on</item>
-        <item>Automatic</item>
+<!--        <item>Automatic</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>แสดงชื่อและข้อความ</item>

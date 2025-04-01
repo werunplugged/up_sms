@@ -380,7 +380,7 @@
         <item>מערכת</item>
         <item>מושבת</item>
         <item>תמיד מופעל</item>
-        <item>אוטומטי</item>
+<!--        <item>אוטומטי</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>הצגת שם והודעה</item>

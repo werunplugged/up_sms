@@ -449,7 +449,7 @@
         <item>Système</item>
         <item>Désactivé</item>
         <item>Toujours activé</item>
-        <item>Automatique</item>
+<!--        <item>Automatique</item>-->
     </string-array>
 
     <string-array name="notification_preview_options">

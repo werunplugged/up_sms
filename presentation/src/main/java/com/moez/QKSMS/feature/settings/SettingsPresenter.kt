@@ -72,17 +72,17 @@ class SettingsPresenter @Inject constructor(
                     newState { copy(nightModeSummary = nightModeLabels[nightMode], nightModeId = nightMode) }
                 }
 
-        disposables += prefs.nightStart.asObservable()
-                .map { time -> nightModeManager.parseTime(time) }
-                .map { calendar -> calendar.timeInMillis }
-                .map { millis -> dateFormatter.getTimestamp(millis) }
-                .subscribe { nightStart -> newState { copy(nightStart = nightStart) } }
-
-        disposables += prefs.nightEnd.asObservable()
-                .map { time -> nightModeManager.parseTime(time) }
-                .map { calendar -> calendar.timeInMillis }
-                .map { millis -> dateFormatter.getTimestamp(millis) }
-                .subscribe { nightEnd -> newState { copy(nightEnd = nightEnd) } }
+//        disposables += prefs.nightStart.asObservable()
+//                .map { time -> nightModeManager.parseTime(time) }
+//                .map { calendar -> calendar.timeInMillis }
+//                .map { millis -> dateFormatter.getTimestamp(millis) }
+//                .subscribe { nightStart -> newState { copy(nightStart = nightStart) } }
+//
+//        disposables += prefs.nightEnd.asObservable()
+//                .map { time -> nightModeManager.parseTime(time) }
+//                .map { calendar -> calendar.timeInMillis }
+//                .map { millis -> dateFormatter.getTimestamp(millis) }
+//                .subscribe { nightEnd -> newState { copy(nightEnd = nightEnd) } }
 
         disposables += prefs.black.asObservable()
                 .subscribe { black -> newState { copy(black = black) } }
@@ -177,15 +177,15 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.night -> view.showNightModeDialog()
 
-                        R.id.nightStart -> {
-                            val date = nightModeManager.parseTime(prefs.nightStart.get())
-                            view.showStartTimePicker(date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE))
-                        }
-
-                        R.id.nightEnd -> {
-                            val date = nightModeManager.parseTime(prefs.nightEnd.get())
-                            view.showEndTimePicker(date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE))
-                        }
+//                        R.id.nightStart -> {
+//                            val date = nightModeManager.parseTime(prefs.nightStart.get())
+//                            view.showStartTimePicker(date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE))
+//                        }
+//
+//                        R.id.nightEnd -> {
+//                            val date = nightModeManager.parseTime(prefs.nightEnd.get())
+//                            view.showEndTimePicker(date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE))
+//                        }
 
                         R.id.black -> prefs.black.set(!prefs.black.get())
 
@@ -264,13 +264,13 @@ class SettingsPresenter @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe { navigator.showQksmsPlusActivity("settings_night") }
 
-        view.nightStartSelected()
-                .autoDisposable(view.scope())
-                .subscribe { nightModeManager.setNightStart(it.first, it.second) }
-
-        view.nightEndSelected()
-                .autoDisposable(view.scope())
-                .subscribe { nightModeManager.setNightEnd(it.first, it.second) }
+//        view.nightStartSelected()
+//                .autoDisposable(view.scope())
+//                .subscribe { nightModeManager.setNightStart(it.first, it.second) }
+//
+//        view.nightEndSelected()
+//                .autoDisposable(view.scope())
+//                .subscribe { nightModeManager.setNightEnd(it.first, it.second) }
 
         view.textSizeSelected()
                 .autoDisposable(view.scope())

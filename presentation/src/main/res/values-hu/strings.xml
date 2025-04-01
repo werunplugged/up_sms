@@ -370,7 +370,7 @@
         <item>Rendszer</item>
         <item>Letiltva</item>
         <item>Mindig bekapcsolt</item>
-        <item>Automatikus</item>
+<!--        <item>Automatikus</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Név és üzenet látható</item>

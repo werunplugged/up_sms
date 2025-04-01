@@ -370,7 +370,7 @@
         <item>System</item>
         <item>Inaktiverad</item>
         <item>Alltid på</item>
-        <item>Automatisk</item>
+<!--        <item>Automatisk</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Visa namn och meddelande</item>

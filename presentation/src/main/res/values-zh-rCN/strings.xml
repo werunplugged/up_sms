@@ -365,7 +365,7 @@
         <item>系统</item>
         <item>已禁用</item>
         <item>始终打开</item>
-        <item>自动</item>
+<!--        <item>自动</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>显示姓名和消息</item>

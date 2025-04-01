@@ -23,6 +23,8 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.Vibrator
 import android.telephony.SmsMessage
 import android.widget.Toast
@@ -1126,7 +1128,9 @@ class ComposeViewModel @Inject constructor(
                         val params = AddScheduledMessage
                                 .Params(state.scheduled, subId, addresses, sendAsGroup, body, uris)
                         addScheduledMessage.execute(params)
-                        context.makeToast(R.string.compose_scheduled_toast)
+                        Handler(Looper.getMainLooper()).post {
+                            context.makeToast(R.string.compose_scheduled_toast)
+                        }
                     }
 
                     // Sending a group message

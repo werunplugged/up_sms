@@ -365,7 +365,7 @@
         <item>システム</item>
         <item>無効</item>
         <item>常に ON</item>
-        <item>自動</item>
+<!--        <item>自動</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>名前とメッセージを表示</item>

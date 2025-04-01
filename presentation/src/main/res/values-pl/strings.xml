@@ -470,7 +470,7 @@
         <item>Systemowy</item>
         <item>Wyłączony</item>
         <item>Zawsze włączony</item>
-        <item>Automatyczny</item>
+<!--        <item>Automatyczny</item>-->
     </string-array>
 
     <string-array name="notification_preview_options">

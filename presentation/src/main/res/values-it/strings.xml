@@ -370,7 +370,7 @@
         <item>Sistema</item>
         <item>Disabilitato</item>
         <item>Sempre acceso</item>
-        <item>Automatico</item>
+<!--        <item>Automatico</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Mostra il nome e il messaggio</item>

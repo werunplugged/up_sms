@@ -372,7 +372,7 @@ BAĞLAM İSTEĞİ</string>
         <item>Sistem</item>
         <item>Devre dışı</item>
         <item>Her zaman açık</item>
-        <item>Otomatik</item>
+<!--        <item>Otomatik</item>-->
     </string-array>
     <string-array name="notification_preview_options">
         <item>Adı ve ileti göster</item>
