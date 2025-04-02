@@ -73,16 +73,15 @@ android {
         jvmTarget = "1.8"
     }
 
-
     productFlavors {
         withAnalytics { dimension "analytics" }
-        noAnalytics {
-
-        }
+        noAnalytics {}
     }
+
     lint {
         abortOnError false
     }
+
     namespace 'dev.octoshrimpy.quik'
 }
 
