@@ -380,7 +380,6 @@
         <item>Systém</item>
         <item>Vypnuté</item>
         <item>Vždy zapnuté</item>
-        <item>Automaticky</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Zobraziť meno a správu</item>

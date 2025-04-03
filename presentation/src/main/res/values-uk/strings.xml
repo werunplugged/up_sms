@@ -380,7 +380,6 @@
         <item>Система</item>
         <item>Вимкнено</item>
         <item>Завжди увімкнено</item>
-        <item>Автоматично</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Показати ім\'я та повідомлення</item>

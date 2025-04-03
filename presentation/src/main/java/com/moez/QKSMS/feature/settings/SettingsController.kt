@@ -157,10 +157,10 @@ class SettingsController : QkController<SettingsView, SettingsState, SettingsPre
         themePreview.setBackgroundTint(state.theme)
         night.summary = state.nightModeSummary
         nightModeDialog.adapter.selectedItem = state.nightModeId
-        nightStart.setVisible(state.nightModeId == Preferences.NIGHT_MODE_AUTO)
-        nightStart.summary = state.nightStart
-        nightEnd.setVisible(state.nightModeId == Preferences.NIGHT_MODE_AUTO)
-        nightEnd.summary = state.nightEnd
+//        nightStart.setVisible(state.nightModeId == Preferences.NIGHT_MODE_AUTO)
+//        nightStart.summary = state.nightStart
+//        nightEnd.setVisible(state.nightModeId == Preferences.NIGHT_MODE_AUTO)
+//        nightEnd.summary = state.nightEnd
 
         black.setVisible(state.nightModeId != Preferences.NIGHT_MODE_OFF)
         black.checkbox.isChecked = state.black

@@ -370,7 +370,6 @@
         <item>পদ্ধতি</item>
         <item>অক্ষম</item>
         <item>সর্বদা চালু</item>
-        <item>স্বয়ংক্রিয়</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>নাম এবং বার্তা প্রদর্শন করো</item>

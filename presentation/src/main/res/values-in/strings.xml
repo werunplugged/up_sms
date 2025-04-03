@@ -365,7 +365,6 @@
         <item>Sistem</item>
         <item>Nonaktif</item>
         <item>Selalu aktif</item>
-        <item>Otomatis</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Tampilkan nama dan pesan</item>

@@ -365,7 +365,6 @@
         <item>跟隨系統</item>
         <item>停用</item>
         <item>啓用</item>
-        <item>自動</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>顯示姓名和消息</item>

@@ -380,7 +380,6 @@
         <item>Как в системе</item>
         <item>Отключено</item>
         <item>Всегда включено</item>
-        <item>Автоматически</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Показать имя и сообщение</item>

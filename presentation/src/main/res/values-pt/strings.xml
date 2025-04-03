@@ -370,7 +370,6 @@
         <item>Sistema</item>
         <item>Desativado</item>
         <item>Sempre</item>
-        <item>Automático</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Mostrar nome e mensagem</item>

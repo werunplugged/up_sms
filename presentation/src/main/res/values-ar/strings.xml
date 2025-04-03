@@ -391,7 +391,6 @@
         <item>نظام</item>
         <item>الغاء التفعيل</item>
         <item>دائما مفعل</item>
-        <item>تلقائي</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>عرض الاسم والرسالة</item>

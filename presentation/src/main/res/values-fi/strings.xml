@@ -370,7 +370,6 @@
         <item>Järjestelmä</item>
         <item>Pois käytöstä</item>
         <item>Aina päällä</item>
-        <item>Automaattinen</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Näytä nimi ja viesti</item>

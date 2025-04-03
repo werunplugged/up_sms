@@ -370,7 +370,6 @@
         <item>Systeem</item>
         <item>Uitgeschakeld</item>
         <item>Altijd aan</item>
-        <item>Automatisch</item>
     </string-array>
     <string-array name="notification_preview_options">
         <item>Toon naam en bericht</item>
