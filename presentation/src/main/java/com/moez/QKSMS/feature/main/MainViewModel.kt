@@ -18,9 +18,6 @@
  */
 package dev.octoshrimpy.quik.feature.main
 
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.recyclerview.widget.ItemTouchHelper
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.Navigator
@@ -48,6 +45,8 @@ import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
+import dev.octoshrimpy.quik.interactor.SpeakThreads
+import dev.octoshrimpy.quik.repository.MessageRepository
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.rxkotlin.withLatestFrom
@@ -68,6 +67,7 @@ class MainViewModel @Inject constructor(
     syncRepository: SyncRepository,
     private val changelogManager: ChangelogManager,
     private val conversationRepo: ConversationRepository,
+    private val messageRepo: MessageRepository,
     private val deleteConversations: DeleteConversations,
     private val markArchived: MarkArchived,
     private val markPinned: MarkPinned,
@@ -75,13 +75,15 @@ class MainViewModel @Inject constructor(
     private val markUnarchived: MarkUnarchived,
     private val markUnpinned: MarkUnpinned,
     private val markUnread: MarkUnread,
+    private val speakThreads: SpeakThreads,
     private val navigator: Navigator,
     private val permissionManager: PermissionManager,
     private val prefs: Preferences,
     private val ratingManager: RatingManager,
     private val syncContacts: SyncContacts,
     private val syncMessages: SyncMessages
-) : QkViewModel<MainView, MainState>(MainState(page = Inbox(data = conversationRepo.getConversations()))) {
+) : QkViewModel<MainView, MainState>(MainState(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))) {
+    private val lastArchivedThreadIds = ArrayList<Long>()
 
     init {
         disposables += deleteConversations
@@ -137,6 +139,25 @@ class MainViewModel @Inject constructor(
             !permissionManager.isDefaultSms() -> view.requestDefaultSms()
             !permissionManager.hasReadSms() || !permissionManager.hasContacts() -> view.requestPermissions()
         }
+
+
+        // when unreadAtTop preference changes, reload the model view data to refresh view
+        prefs.unreadAtTop.asObservable()
+            .skip(1)
+            .debounce(400, TimeUnit.MILLISECONDS)
+            .observeOn(AndroidSchedulers.mainThread())
+            .withLatestFrom(state) { _, state ->
+                if (state.page is Inbox)
+                    newState {
+                        copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))
+                    }
+                else if (state.page is Archived)
+                    newState {
+                        copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get(), true)))
+                    }
+            }
+            .autoDisposable(view.scope())
+            .subscribe()
 
         // If the default SMS state changes, reflect it in the State
         view.activityResumedIntent
@@ -224,7 +245,7 @@ class MainViewModel @Inject constructor(
                 .map { query -> query.trim() }
                 .withLatestFrom(state) { query, state ->
                     if (query.isEmpty() && state.page is Searching) {
-                        newState { copy(page = Inbox(data = conversationRepo.getConversations())) }
+                        newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
                     }
                     query
                 }
@@ -286,7 +307,7 @@ class MainViewModel @Inject constructor(
                             state.page is Inbox && state.page.selected > 0 -> view.clearSelection()
                             state.page is Archived && state.page.selected > 0 -> view.clearSelection()
                             state.page !is Inbox -> {
-                                newState { copy(page = Inbox(data = conversationRepo.getConversations())) }
+                                newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
                             }
                             else -> newState { copy(hasError = true) }
                         }
@@ -304,8 +325,8 @@ class MainViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .doOnNext { drawerItem ->
                     when (drawerItem) {
-                        NavItem.INBOX -> newState { copy(page = Inbox(data = conversationRepo.getConversations())) }
-                        NavItem.ARCHIVED -> newState { copy(page = Archived(data = conversationRepo.getConversations(true))) }
+                        NavItem.INBOX -> newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
+                        NavItem.ARCHIVED -> newState { copy(page = Archived(data = conversationRepo.getConversations(prefs.unreadAtTop.get(), true))) }
                         else -> Unit
                     }
                 }
@@ -313,9 +334,17 @@ class MainViewModel @Inject constructor(
                 .subscribe()
 
         view.optionsItemIntent
+            .filter { itemId -> itemId == R.id.select_all }
+            .autoDisposable(view.scope())
+            .subscribe { view.toggleSelectAll() }
+
+        view.optionsItemIntent
                 .filter { itemId -> itemId == R.id.archive }
                 .withLatestFrom(view.conversationsSelectedIntent) { _, conversations ->
                     markArchived.execute(conversations)
+                    lastArchivedThreadIds.clear()
+                    conversations.forEach { conversation -> lastArchivedThreadIds.add(conversation) }
+                    view.showArchivedSnackbar(conversations.count())
                     view.clearSelection()
                 }
                 .autoDisposable(view.scope())
@@ -325,6 +354,7 @@ class MainViewModel @Inject constructor(
                 .filter { itemId -> itemId == R.id.unarchive }
                 .withLatestFrom(view.conversationsSelectedIntent) { _, conversations ->
                     markUnarchived.execute(conversations)
+                    view.showArchivedSnackbar(conversations.count())
                     view.clearSelection()
                 }
                 .autoDisposable(view.scope())
@@ -399,6 +429,13 @@ class MainViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe()
 
+        view.optionsItemIntent
+            .filter { itemId -> itemId == R.id.rename }
+            .withLatestFrom(view.conversationsSelectedIntent) { _, conversationIds -> conversationIds.first() }
+            .mapNotNull { conversationId -> conversationRepo.getConversation(conversationId) }
+            .autoDisposable(view.scope())
+            .subscribe { conversation -> view.showRenameDialog(conversation.name) }
+
 //        view.plusBannerIntent
 //                .autoDisposable(view.scope())
 //                .subscribe {
@@ -455,24 +492,60 @@ class MainViewModel @Inject constructor(
                     view.clearSelection()
                 }
 
+        view.renameConversationIntent
+            .withLatestFrom(view.conversationsSelectedIntent) { newConversationName, selectedConversationIds ->
+                Pair(newConversationName, selectedConversationIds.first())
+            }
+            .doOnNext { view.clearSelection() }
+            .map { newNameAndConversationId ->
+                conversationRepo.setConversationName(
+                    newNameAndConversationId.second,
+                    newNameAndConversationId.first
+                )
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+            }
+            .flatMapCompletable { it }
+            .autoDisposable(view.scope())
+            .subscribe()
+
         view.swipeConversationIntent
                 .autoDisposable(view.scope())
                 .subscribe { (threadId, direction) ->
-                    val action = if (direction == ItemTouchHelper.RIGHT) prefs.swipeRight.get() else prefs.swipeLeft.get()
+                    val action =
+                        if (direction == ItemTouchHelper.RIGHT) prefs.swipeRight.get()
+                        else prefs.swipeLeft.get()
                     when (action) {
-                        Preferences.SWIPE_ACTION_ARCHIVE -> markArchived.execute(listOf(threadId)) { view.showArchivedSnackbar() }
-                        Preferences.SWIPE_ACTION_DELETE -> view.showDeleteDialog(listOf(threadId))
-                        Preferences.SWIPE_ACTION_BLOCK -> view.showBlockingDialog(listOf(threadId), true)
-                        Preferences.SWIPE_ACTION_CALL -> conversationRepo.getConversation(threadId)?.recipients?.firstOrNull()?.address?.let(navigator::makePhoneCall)
+                        Preferences.SWIPE_ACTION_ARCHIVE ->
+                            markArchived.execute(listOf(threadId)) {
+                                lastArchivedThreadIds.clear()
+                                lastArchivedThreadIds.add(threadId)
+                                view.showArchivedSnackbar(1)
+                            }
+                        Preferences.SWIPE_ACTION_DELETE ->
+                            view.showDeleteDialog(listOf(threadId))
+                        Preferences.SWIPE_ACTION_BLOCK ->
+                            view.showBlockingDialog(listOf(threadId), true)
+                        Preferences.SWIPE_ACTION_CALL -> {
+                            (
+                                messageRepo.getMessagesSync(threadId).lastOrNull { !it.isMe() }
+                                    ?.address // most recent non-me msg address
+                                ?: conversationRepo.getConversation(threadId)
+                                    ?.recipients?.firstOrNull()?.address  // first recipient in convo
+                            )?.let(navigator::makePhoneCall)
+                        }
                         Preferences.SWIPE_ACTION_READ -> markRead.execute(listOf(threadId))
                         Preferences.SWIPE_ACTION_UNREAD -> markUnread.execute(listOf(threadId))
+                        Preferences.SWIPE_ACTION_SPEAK -> speakThreads.execute(listOf(threadId))
                     }
                 }
 
         view.undoArchiveIntent
-                .withLatestFrom(view.swipeConversationIntent) { _, pair -> pair.first }
                 .autoDisposable(view.scope())
-                .subscribe { threadId -> markUnarchived.execute(listOf(threadId)) }
+                .subscribe {
+                    markUnarchived.execute(lastArchivedThreadIds)
+                    lastArchivedThreadIds.clear()
+                }
 
         view.snackbarButtonIntent
                 .withLatestFrom(state) { _, state ->

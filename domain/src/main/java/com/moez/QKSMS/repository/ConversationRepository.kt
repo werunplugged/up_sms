@@ -27,9 +27,9 @@ import io.realm.RealmResults
 
 interface ConversationRepository {
 
-    fun getConversations(archived: Boolean = false): RealmResults<Conversation>
+    fun getConversations(unreadAtTop: Boolean, archived: Boolean = false): RealmResults<Conversation>
 
-    fun getConversationsSnapshot(): List<Conversation>
+    fun getConversationsSnapshot(unreadAtTop: Boolean): List<Conversation>
 
     /**
      * Returns the top conversations that were active in the last week
@@ -47,6 +47,12 @@ interface ConversationRepository {
     fun getConversationAsync(threadId: Long): Conversation
 
     fun getConversation(threadId: Long): Conversation?
+
+    fun getUnseenIds(archived: Boolean = false): List<Long>
+
+    fun getUnreadIds(archived: Boolean = false): List<Long>
+
+    fun getConversationAndLastSenderContactName(threadId: Long): Pair<Conversation?, String?>?
 
     /**
      * Returns all conversations with an id in [threadIds]

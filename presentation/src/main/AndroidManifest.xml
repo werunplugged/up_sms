@@ -43,6 +43,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:name=".common.QKApplication"
@@ -88,22 +89,12 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
+                <data android:mimeType="*/*" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/x-vcard" />
+                <data android:mimeType="*/*" />
             </intent-filter>
 
             <meta-data
@@ -175,6 +166,13 @@
         <receiver android:name=".receiver.BlockThreadReceiver" />
         <receiver android:name=".receiver.MarkSeenReceiver" />
         <receiver android:name=".receiver.MarkReadReceiver" />
+        <receiver
+            android:name=".receiver.SpeakThreadsReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.octoshrimpy.quik.intent.action.ACTION_SPEAK_MESSAGES" />
+            </intent-filter>
+        </receiver>
         <receiver android:name=".receiver.RemoteMessagingReceiver" />
         <receiver android:name=".receiver.NightModeReceiver" />
         <receiver
@@ -186,6 +184,19 @@
         </receiver>
 
         <receiver android:name=".receiver.SendScheduledMessageReceiver" />
+        <receiver
+            android:name=".feature.widget.WidgetSpeakUnseenProvider"
+            android:label="@string/speak_unseen_messages"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.octoshrimpy.quik.intent.action.ACTION_NOTIFY_DATASET_CHANGED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_speak_unseen_info" />
+        </receiver>
         <receiver
             android:name=".feature.widget.WidgetProvider"
             android:exported="true">
@@ -199,6 +210,7 @@
                 android:resource="@xml/widget_info" />
         </receiver>
         <receiver android:name=".receiver.SendSmsReceiver" />
+        <receiver android:name=".receiver.StartActivityFromWidgetReceiver" />
 
         <service android:name="com.android.mms.transaction.TransactionService" />
         <service android:name=".feature.backup.RestoreBackupService" />
@@ -240,17 +252,6 @@
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
-
     </application>
 
     <queries>
@@ -259,6 +260,9 @@
         <package android:name="org.mistergroup.muzutozvednout" />
         <package android:name="org.mistergroup.shouldianswer" />
         <package android:name="org.mistergroup.shouldianswerpersonal" />
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
     </queries>
 
 </manifest>

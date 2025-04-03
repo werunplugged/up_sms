@@ -25,7 +25,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -48,6 +47,7 @@ import dev.octoshrimpy.quik.compat.TelephonyCompat
 import dev.octoshrimpy.quik.extensions.anyOf
 import dev.octoshrimpy.quik.extensions.isImage
 import dev.octoshrimpy.quik.extensions.isVideo
+import dev.octoshrimpy.quik.extensions.resourceExists
 import dev.octoshrimpy.quik.manager.ActiveConversationManager
 import dev.octoshrimpy.quik.manager.KeyManager
 import dev.octoshrimpy.quik.model.Attachment
@@ -63,16 +63,10 @@ import dev.octoshrimpy.quik.util.Preferences
 import dev.octoshrimpy.quik.util.tryOrNull
 import io.realm.Case
 import io.realm.Realm
+import io.realm.RealmQuery
 import io.realm.RealmResults
 import io.realm.Sort
-import okio.buffer
-import okio.source
 import timber.log.Timber
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
-import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,7 +74,7 @@ import kotlin.collections.ArrayList
 import kotlin.math.sqrt
 
 @Singleton
-class MessageRepositoryImpl @Inject constructor(
+open class MessageRepositoryImpl @Inject constructor(
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
     private val messageIds: KeyManager,
@@ -89,23 +83,30 @@ class MessageRepositoryImpl @Inject constructor(
     private val syncRepository: SyncRepository
 ) : MessageRepository {
 
-    override fun getMessages(threadId: Long, query: String): RealmResults<Message> {
+    private fun getMessagesBase(threadId: Long, query: String): RealmQuery<Message> {
         return Realm.getDefaultInstance()
-                .where(Message::class.java)
-                .equalTo("threadId", threadId)
-                .let {
-                    when (query.isEmpty()) {
-                        true -> it
-                        false -> it
-                                .beginGroup()
-                                .contains("body", query, Case.INSENSITIVE)
-                                .or()
-                                .contains("parts.text", query, Case.INSENSITIVE)
-                                .endGroup()
-                    }
+            .where(Message::class.java)
+            .equalTo("threadId", threadId)
+            .let {
+                when (query.isEmpty()) {
+                    true -> it
+                    false -> it
+                        .beginGroup()
+                        .contains("body", query, Case.INSENSITIVE)
+                        .or()
+                        .contains("parts.text", query, Case.INSENSITIVE)
+                        .endGroup()
                 }
-                .sort("date")
-                .findAllAsync()
+            }
+            .sort("date")
+    }
+
+    override fun getMessages(threadId: Long, query: String): RealmResults<Message> {
+        return getMessagesBase(threadId, query).findAllAsync()
+    }
+
+    override fun getMessagesSync(threadId: Long, query: String): RealmResults<Message> {
+        return getMessagesBase(threadId, query).findAll()
     }
 
     override fun getMessage(id: Long): Message? {
@@ -189,9 +190,9 @@ class MessageRepositoryImpl @Inject constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             values.put(MediaStore.MediaColumns.IS_PENDING, 1)
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, when {
-                part.isImage() -> "${Environment.DIRECTORY_PICTURES}/QKSMS"
-                part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/QKSMS"
-                else -> "${Environment.DIRECTORY_DOWNLOADS}/QKSMS"
+                part.isImage() -> "${Environment.DIRECTORY_PICTURES}/QUIK"
+                part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/QUIK"
+                else -> "${Environment.DIRECTORY_DOWNLOADS}/QUIK"
             })
         }
 
@@ -376,30 +377,43 @@ class MessageRepositoryImpl @Inject constructor(
                 parts += MMSPart("text", ContentType.TEXT_PLAIN, bytes)
             }
 
-            // Attach contacts
+            // Attach those that can't be compressed (ie. everything but images)
             parts += attachments
-                    .mapNotNull { attachment -> attachment as? Attachment.Contact }
-                    .map { attachment -> attachment.vCard.toByteArray() }
-                    .map { vCard ->
-                        remainingBytes -= vCard.size
-                        MMSPart("contact", ContentType.TEXT_VCARD, vCard)
-                    }
+                // filter in non-images only
+                .filter { !it.isImage(context) }
+                // filter in only items that exist (user may have deleted the file)
+                .filter { it.uri.resourceExists(context) }
+                .map {
+                    remainingBytes -= it.getResourceBytes(context).size
+                    val mmsPart = MMSPart(
+                        it.getName(context),
+                        it.getType(context),
+                        it.getResourceBytes(context)
+                    )
+
+                    // release the attachment hold on the image bytes so the GC can reclaim
+                    it.releaseResourceBytes()
+
+                    mmsPart
+                }
 
             val imageBytesByAttachment = attachments
-                    .mapNotNull { attachment -> attachment as? Attachment.Image }
-                    .associateWith { attachment ->
-                        val uri = attachment.getUri() ?: return@associateWith byteArrayOf()
-                        when (attachment.isGif(context)) {
-                            true -> ImageUtils.getScaledGif(context, uri, maxWidth, maxHeight)
-                            false -> ImageUtils.getScaledImage(context, uri, maxWidth, maxHeight)
-                        }
+                // filter in images only
+                .filter { it.isImage(context) }
+                // filter in only items that exist (user may have deleted the file)
+                .filter { it.uri.resourceExists(context) }
+                .associateWith {
+                    when (it.getType(context) == "image/gif") {
+                        true -> ImageUtils.getScaledGif(context, it.uri, maxWidth, maxHeight)
+                        false -> ImageUtils.getScaledImage(context, it.uri, maxWidth, maxHeight)
                     }
-                    .toMutableMap()
+                }
+                .toMutableMap()
 
-            val imageByteCount = imageBytesByAttachment.values.sumBy { byteArray -> byteArray.size }
+            val imageByteCount = imageBytesByAttachment.values.sumOf { it.size }
             if (imageByteCount > remainingBytes) {
                 imageBytesByAttachment.forEach { (attachment, originalBytes) ->
-                    val uri = attachment.getUri() ?: return@forEach
+                    val uri = attachment.uri ?: return@forEach
                     val maxBytes = originalBytes.size / imageByteCount.toFloat() * remainingBytes
 
                     // Get the image dimensions
@@ -426,12 +440,15 @@ class MessageRepositoryImpl @Inject constructor(
                         val newHeight = (newWidth / aspectRatio).toInt()
 
                         attempts++
-                        scaledBytes = when (attachment.isGif(context)) {
-                            true -> ImageUtils.getScaledGif(context, uri, newWidth, newHeight, 80)
-                            false -> ImageUtils.getScaledImage(context, uri, newWidth, newHeight, 80)
+                        scaledBytes = when (attachment.getType(context) == "image/gif") {
+                            true -> ImageUtils.getScaledGif(context, attachment.uri, newWidth, newHeight)
+                            false -> ImageUtils.getScaledImage(context, attachment.uri, newWidth, newHeight)
                         }
 
                         Timber.d("Compression attempt $attempts: ${scaledBytes.size / 1024}/${maxBytes.toInt() / 1024}Kb ($width*$height -> $newWidth*$newHeight)")
+
+                        // release the attachment hold on the image bytes so the GC can reclaim
+                        attachment.releaseResourceBytes()
                     }
 
                     Timber.v("Compressed ${originalBytes.size / 1024}Kb to ${scaledBytes.size / 1024}Kb with a target size of ${maxBytes.toInt() / 1024}Kb in $attempts attempts")
@@ -440,9 +457,9 @@ class MessageRepositoryImpl @Inject constructor(
             }
 
             imageBytesByAttachment.forEach { (attachment, bytes) ->
-                parts += when (attachment.isGif(context)) {
-                    true -> MMSPart("image", ContentType.IMAGE_GIF, bytes)
-                    false -> MMSPart("image", ContentType.IMAGE_JPEG, bytes)
+                parts += when (attachment.getType(context) == "image/gif") {
+                    true -> MMSPart(attachment.getName(context), ContentType.IMAGE_GIF, bytes)
+                    false -> MMSPart(attachment.getName(context), ContentType.IMAGE_JPEG, bytes)
                 }
             }
 

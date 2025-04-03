@@ -61,6 +61,7 @@ import dev.octoshrimpy.quik.repository.SyncRepository
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
 import dagger.android.AndroidInjection
+import dev.octoshrimpy.quik.common.widget.TextInputDialog
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.PublishSubject
@@ -111,6 +112,7 @@ class MainActivity : QkThemedActivity(), MainView {
 //    override val rateIntent by lazy { rateOkay.clicks() }
     override val conversationsSelectedIntent by lazy { conversationsAdapter.selectionChanges }
     override val confirmDeleteIntent: Subject<List<Long>> = PublishSubject.create()
+    override val renameConversationIntent: Subject<String> = PublishSubject.create()
     override val swipeConversationIntent by lazy { itemTouchCallback.swipes }
     override val changelogMoreIntent by lazy { changelogDialog.moreClicks }
     override val undoArchiveIntent: Subject<Unit> = PublishSubject.create()
@@ -225,6 +227,7 @@ class MainActivity : QkThemedActivity(), MainView {
         toolbarSearch.setVisible(state.page is Inbox && state.page.selected == 0 || state.page is Searching)
         toolbarTitle.setVisible(toolbarSearch.visibility != View.VISIBLE)
 
+        toolbar.menu.findItem(R.id.select_all)?.isVisible = (conversationsAdapter.itemCount > 1) && selectedConversations != 0
         toolbar.menu.findItem(R.id.archive)?.isVisible = state.page is Inbox && selectedConversations != 0
         toolbar.menu.findItem(R.id.unarchive)?.isVisible = state.page is Archived && selectedConversations != 0
         toolbar.menu.findItem(R.id.delete)?.isVisible = selectedConversations != 0
@@ -234,6 +237,7 @@ class MainActivity : QkThemedActivity(), MainView {
         toolbar.menu.findItem(R.id.read)?.isVisible = markRead && selectedConversations != 0
         toolbar.menu.findItem(R.id.unread)?.isVisible = !markRead && selectedConversations != 0
         toolbar.menu.findItem(R.id.block)?.isVisible = selectedConversations != 0
+        toolbar.menu.findItem(R.id.rename)?.isVisible = selectedConversations == 1
 
         /*listOf(plusBadge1, plusBadge2).forEach { badge ->
             badge.isVisible = drawerBadgesExperiment.variant && !state.upgraded
@@ -380,6 +384,10 @@ class MainActivity : QkThemedActivity(), MainView {
         conversationsAdapter.clearSelection()
     }
 
+    override fun toggleSelectAll() {
+        conversationsAdapter.toggleSelectAll()
+    }
+
     override fun themeChanged() {
         recyclerView.scrapViews()
     }
@@ -398,12 +406,24 @@ class MainActivity : QkThemedActivity(), MainView {
                 .show()
     }
 
+    override fun showRenameDialog(conversationName: String) {
+        TextInputDialog(
+            this,
+            getString(R.string.info_name),
+            renameConversationIntent::onNext
+        ).setText(conversationName).show()
+    }
+
     override fun showChangelog(changelog: ChangelogManager.CumulativeChangelog) {
         changelogDialog.show(changelog)
     }
 
-    override fun showArchivedSnackbar() {
-        Snackbar.make(drawerLayout, R.string.toast_archived, Snackbar.LENGTH_LONG).apply {
+    override fun showArchivedSnackbar(countConversationsArchived: Int) {
+        Snackbar.make(
+            drawerLayout,
+            resources.getQuantityString(R.plurals.toast_archived, countConversationsArchived, countConversationsArchived),
+            if (countConversationsArchived < 10) Snackbar.LENGTH_LONG else Snackbar.LENGTH_INDEFINITE
+        ).apply {
             setAction(R.string.button_undo) { undoArchiveIntent.onNext(Unit) }
             setActionTextColor(colors.theme().theme)
             show()

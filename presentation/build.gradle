@@ -30,8 +30,8 @@ android {
         applicationId 'com.unplugged.sms'
         minSdkVersion 23
         targetSdkVersion 33
-        versionCode 2225
-        versionName '4.0.8'
+        versionCode 2229
+        versionName '4.1.1'
         setProperty("archivesBaseName", "UPSms-v${versionName}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -47,6 +47,13 @@ android {
             storePassword 'ntH_pmn23f$5'
             v2SigningEnabled true
         }
+    }
+
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs.
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
+        includeInBundle = false
     }
 
     buildTypes {

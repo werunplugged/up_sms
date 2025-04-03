@@ -21,18 +21,24 @@ package dev.octoshrimpy.quik.feature.compose
 import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Build
 import android.text.Layout
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.text.style.StyleSpan
+import android.text.style.URLSpan
+import android.text.util.Linkify
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
-import androidx.recyclerview.widget.RecyclerView
 import com.jakewharton.rxbinding2.view.clicks
+import com.moez.QKSMS.common.QkMediaPlayer
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.base.QkRealmAdapter
 import dev.octoshrimpy.quik.common.base.QkViewHolder
@@ -40,11 +46,11 @@ import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.DateFormatter
 import dev.octoshrimpy.quik.common.util.TextViewStyler
 import dev.octoshrimpy.quik.common.util.extensions.dpToPx
-import dev.octoshrimpy.quik.common.util.extensions.forwardTouches
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
 import dev.octoshrimpy.quik.common.util.extensions.setPadding
 import dev.octoshrimpy.quik.common.util.extensions.setTint
 import dev.octoshrimpy.quik.common.util.extensions.setVisible
+import dev.octoshrimpy.quik.common.util.extensions.withAlpha
 import dev.octoshrimpy.quik.compat.SubscriptionManagerCompat
 import dev.octoshrimpy.quik.extensions.isSmil
 import dev.octoshrimpy.quik.extensions.isText
@@ -56,11 +62,12 @@ import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.model.Recipient
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import dev.octoshrimpy.quik.util.Preferences
+import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import io.realm.RealmResults
 import kotlinx.android.synthetic.main.message_list_item_in.*
-import kotlinx.android.synthetic.main.message_list_item_in.attachments
+import kotlinx.android.synthetic.main.message_list_item_in.parts
 import kotlinx.android.synthetic.main.message_list_item_in.body
 import kotlinx.android.synthetic.main.message_list_item_in.sim
 import kotlinx.android.synthetic.main.message_list_item_in.simIndex
@@ -68,6 +75,7 @@ import kotlinx.android.synthetic.main.message_list_item_in.status
 import kotlinx.android.synthetic.main.message_list_item_in.timestamp
 import kotlinx.android.synthetic.main.message_list_item_in.view.*
 import kotlinx.android.synthetic.main.message_list_item_out.*
+import kotlinx.android.synthetic.main.message_list_item_out.view.cancel
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -84,6 +92,13 @@ class MessagesAdapter @Inject constructor(
     private val textViewStyler: TextViewStyler
 ) : QkRealmAdapter<Message>() {
 
+    class AudioState(
+        var partId: Long = -1,
+        var state: QkMediaPlayer.PlayingState = QkMediaPlayer.PlayingState.Stopped,
+        var seekBarUpdater: Disposable? = null,
+        var viewHolder: QkViewHolder? = null
+    )
+
     companion object {
         private const val VIEW_TYPE_MESSAGE_IN = 0
         private const val VIEW_TYPE_MESSAGE_OUT = 1
@@ -95,9 +110,13 @@ class MessagesAdapter @Inject constructor(
 
     }
 
-    val clicks: Subject<Long> = PublishSubject.create()
+    // click events passed back to compose view model
     val partClicks: Subject<Long> = PublishSubject.create()
-    val cancelSending: Subject<Long> = PublishSubject.create()
+    val messageLinkClicks: Subject<Uri> = PublishSubject.create()
+    val cancelSendingClicks: Subject<Long> = PublishSubject.create()
+    val sendNowClicks: Subject<Long> = PublishSubject.create()
+    val resendClicks: Subject<Long> = PublishSubject.create()
+    val partContextMenuRegistrar: Subject<View> = PublishSubject.create()
 
     var data: Pair<Conversation, RealmResults<Message>>? = null
         set(value) {
@@ -115,29 +134,14 @@ class MessagesAdapter @Inject constructor(
     private val conversation: Conversation?
         get() = data?.first?.takeIf { it.isValid }
 
-    /**
-     * Mark this message as highlighted
-     */
-    var highlight: Long = -1L
-        set(value) {
-            if (field == value) return
-
-            field = value
-            notifyDataSetChanged()
-        }
-
     private val contactCache = ContactCache()
     private val expanded = HashMap<Long, Boolean>()
-    private val partsViewPool = RecyclerView.RecycledViewPool()
     private val subs = subscriptionManager.activeSubscriptionInfoList
 
     var theme: Colors.Theme = colors.theme()
 
-    /**
-     * If the viewType is negative, then the viewHolder has an attachment. We'll consider
-     * this a unique viewType even though it uses the same view, so that regular messages
-     * don't need clipToOutline set to true, and they don't need to worry about images
-     */
+    private val audioState = AudioState()
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QkViewHolder {
 
         // Use the parent's context to inflate the layout, otherwise link clicks will crash the app
@@ -148,17 +152,16 @@ class MessagesAdapter @Inject constructor(
             view = layoutInflater.inflate(R.layout.message_list_item_out, parent, false)
             view.findViewById<ImageView>(R.id.cancelIcon).setTint(theme.theme)
             view.findViewById<ProgressBar>(R.id.cancel).setTint(theme.theme)
+            view.findViewById<ImageView>(R.id.sendNowIcon).setTint(theme.theme)
+            view.findViewById<ImageView>(R.id.resendIcon).setTint(theme.theme)
         } else {
             view = layoutInflater.inflate(R.layout.message_list_item_in, parent, false)
         }
 
         view.body.hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
 
-        val partsAdapter = partsAdapterProvider.get()
-        partsAdapter.clicks.subscribe(partClicks)
-        view.attachments.adapter = partsAdapter
-        view.attachments.setRecycledViewPool(partsViewPool)
-        view.body.forwardTouches(view)
+        // register recycler view with compose activity for context menus
+        partContextMenuRegistrar.onNext(view.parts)
 
         return QkViewHolder(view).apply {
             view.setOnClickListener {
@@ -166,7 +169,6 @@ class MessagesAdapter @Inject constructor(
                 when (toggleSelection(message.id, false)) {
                     true -> view.isActivated = isSelected(message.id)
                     false -> {
-                        clicks.onNext(message.id)
                         expanded[message.id] = view.status.visibility != View.VISIBLE
                         notifyItemChanged(adapterPosition)
                     }
@@ -191,28 +193,61 @@ class MessagesAdapter @Inject constructor(
             false -> colors.theme(contactCache[message.address])
         }
 
+        holder.parts.adapter = partsAdapterProvider.get().apply {
+            contextMenuValue = message.id
+            clicks.subscribe(partClicks)    // part clicks gets passed back to compose view model
+        }
+
         // Update the selected state
         holder.containerView.isActivated = isSelected(message.id) || highlight == message.id
 
-        // Bind the cancel view
-        holder.cancel?.let { cancel ->
-            val isCancellable = message.isSending() && message.date > System.currentTimeMillis()
-            cancel.setVisible(isCancellable)
-            cancel.clicks().subscribe { cancelSending.onNext(message.id) }
-            cancel.progress = 2
+        // Bind the cancelFrame (cancel button) view
+        if (holder.cancelFrame != null) {
+            holder.cancelFrame.let { cancelFrame ->
+                val isCancellable = message.isSending() && message.date > System.currentTimeMillis()
+                cancelFrame.visibility = if (isCancellable) View.VISIBLE else View.GONE
+                cancelFrame.clicks().subscribe { cancelSendingClicks.onNext(message.id) }
+                cancelFrame.cancel.progress = 2
 
-            if (isCancellable) {
-                val delay = when (prefs.sendDelay.get()) {
-                    Preferences.SEND_DELAY_SHORT -> 3000
-                    Preferences.SEND_DELAY_MEDIUM -> 5000
-                    Preferences.SEND_DELAY_LONG -> 10000
-                    else -> 0
-                }
-                val progress = (1 - (message.date - System.currentTimeMillis()) / delay.toFloat()) * 100
+                if (isCancellable) {
+                    val delay = when (prefs.sendDelay.get()) {
+                        Preferences.SEND_DELAY_SHORT -> 3000
+                        Preferences.SEND_DELAY_MEDIUM -> 5000
+                        Preferences.SEND_DELAY_LONG -> 10000
+                        else -> 0
+                    }
+                    val progress =
+                        (1 - (message.date - System.currentTimeMillis()) / delay.toFloat()) * 100
 
-                ObjectAnimator.ofInt(cancel, "progress", progress.toInt(), 100)
+                    ObjectAnimator.ofInt(cancelFrame.cancel, "progress", progress.toInt(), 100)
                         .setDuration(message.date - System.currentTimeMillis())
                         .start()
+                }
+            }
+        }
+
+        // bind the send now icon view
+        if (holder.sendNowIcon != null) {
+            holder.sendNowIcon.let { sendNowIcon ->
+                if (message.isSending() && message.date > System.currentTimeMillis()) {
+                    sendNowIcon.visibility = View.VISIBLE
+                    sendNowIcon.clicks().subscribe { sendNowClicks.onNext(message.id) }
+                } else
+                    sendNowIcon.visibility = View.GONE
+            }
+        }
+
+        // bind the resend icon view
+        if (holder.resendIcon != null) {
+            holder.resendIcon.let { resendIcon ->
+                if (message.isFailedMessage()) {
+                    resendIcon.visibility = View.VISIBLE
+                    resendIcon.clicks().subscribe {
+                        resendClicks.onNext(message.id)
+                        resendIcon.visibility = View.GONE
+                    }
+                } else
+                    resendIcon.visibility = View.GONE
             }
         }
 
@@ -243,6 +278,19 @@ class MessagesAdapter @Inject constructor(
 
             holder.body.setTextColor(theme.textPrimary)
             holder.body.setBackgroundTint(theme.theme)
+            holder.body.highlightColor = R.attr.bubbleColor.withAlpha(0x5d)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                holder.body.textSelectHandle?.setTint(R.attr.bubbleColor.withAlpha(0x7d))
+                holder.body.textSelectHandleLeft?.setTint(R.attr.bubbleColor.withAlpha(0x7d))
+                holder.body.textSelectHandleRight?.setTint(R.attr.bubbleColor.withAlpha(0x7d))
+            }
+        } else {
+            holder.body.highlightColor = theme.theme.withAlpha(0x5d)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                holder.body.textSelectHandle?.setTint(theme.theme.withAlpha(0xad))
+                holder.body.textSelectHandleLeft?.setTint(theme.theme.withAlpha(0xad))
+                holder.body.textSelectHandleRight?.setTint(theme.theme.withAlpha(0xad))
+            }
         }
 
         // Bind the body text
@@ -273,18 +321,55 @@ class MessagesAdapter @Inject constructor(
             false -> TextViewStyler.SIZE_PRIMARY
         })
 
-        holder.body.text = messageText
-        holder.body.setVisible(message.isSms() || messageText.isNotBlank())
+        val spanString = SpannableStringBuilder(messageText)
+
+        when (prefs.messageLinkHandling.get()) {
+            Preferences.MESSAGE_LINK_HANDLING_BLOCK -> holder.body.autoLinkMask = 0
+            Preferences.MESSAGE_LINK_HANDLING_ASK -> {
+                //  manually handle link clicks if user has set to ask before opening links
+                holder.body.isClickable = false
+                holder.body.linksClickable = false
+                holder.body.movementMethod = LinkMovementMethod.getInstance()
+
+                Linkify.addLinks(spanString, holder.body.autoLinkMask)
+
+                for (span in spanString.getSpans(
+                    0,
+                    spanString.length,
+                    URLSpan::class.java)
+                ) {
+                    // set handler for when user touches a link into new span
+                    spanString.setSpan(
+                        object : ClickableSpan() {
+                            override fun onClick(widget: View) {
+                                messageLinkClicks.onNext(Uri.parse(span.url))
+                            }
+                        },
+                        spanString.getSpanStart(span),
+                        spanString.getSpanEnd(span),
+                        spanString.getSpanFlags(span)
+                    )
+
+                    // remove original span
+                    spanString.removeSpan(span)
+                }
+            }
+            else -> holder.body.movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        holder.body.text = spanString
+        holder.body.setVisible(message.isSms() || spanString.isNotBlank())
+
         holder.body.setBackgroundResource(getBubble(
                 emojiOnly = emojiOnly,
                 canGroupWithPrevious = canGroup(message, previous) || media.isNotEmpty(),
                 canGroupWithNext = canGroup(message, next),
                 isMe = message.isMe()))
 
-        // Bind the attachments
-        val partsAdapter = holder.attachments.adapter as PartsAdapter
+        // Bind the parts
+        val partsAdapter = (holder.parts.adapter as PartsAdapter)
         partsAdapter.theme = theme
-        partsAdapter.setData(message, previous, next, holder)
+        partsAdapter.setData(message, previous, next, holder, audioState)
     }
 
     private fun bindStatus(holder: QkViewHolder, message: Message, next: Message?) {
@@ -295,12 +380,9 @@ class MessagesAdapter @Inject constructor(
             message.isDelivered() -> context.getString(R.string.message_status_delivered,
                     dateFormatter.getTimestamp(message.dateSent))
             message.isFailedMessage() -> context.getString(R.string.message_status_failed)
-
-            // Incoming group message
-            !message.isMe() && conversation?.recipients?.size ?: 0 > 1 -> {
+            !message.isMe() && (conversation?.recipients?.size ?: 0) > 1 -> {  // incoming group message
                 "${contactCache[message.address]?.getDisplayName()} • ${dateFormatter.getTimestamp(message.date)}"
             }
-
             else -> dateFormatter.getTimestamp(message.date)
         }
 
@@ -309,10 +391,14 @@ class MessagesAdapter @Inject constructor(
             message.isSending() -> true
             message.isFailedMessage() -> true
             expanded[message.id] == false -> false
-            conversation?.recipients?.size ?: 0 > 1 && !message.isMe() && next?.compareSender(message) != true -> true
+            (conversation?.recipients?.size ?: 0) > 1 && !message.isMe() && next?.compareSender(message) != true -> true
             message.isDelivered() && next?.isDelivered() != true && age <= BubbleUtils.TIMESTAMP_THRESHOLD -> true
             else -> false
         })
+    }
+
+    override fun getItemId(position: Int): Long {
+        return getItem(position)?.id ?: -1
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -321,6 +407,11 @@ class MessagesAdapter @Inject constructor(
             true -> VIEW_TYPE_MESSAGE_OUT
             false -> VIEW_TYPE_MESSAGE_IN
         }
+    }
+
+    fun expandMessages(messageIds: List<Long>, expand: Boolean) {
+        messageIds.forEach { messageId -> expanded[messageId] = expand }
+        notifyDataSetChanged()
     }
 
     /**
