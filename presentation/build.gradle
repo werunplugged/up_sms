@@ -39,12 +39,19 @@ android {
         versionNameSuffix '-alpha'
     }
 
+    def keystorePropertiesFile = rootProject.file("${System.getProperty("user.home")}/Documents/up_dev_signature/signing.properties")
+    def keystoreProperties = new Properties()
+
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+
     signingConfigs {
         debug {
-            keyAlias 'up_dev_key'
-            keyPassword 'ntH_pmn23f$5'
-            storeFile file('./signature/up_dev.keystore')
-            storePassword 'ntH_pmn23f$5'
+            keyAlias keystoreProperties.getProperty("keyAlias")
+            keyPassword keystoreProperties.getProperty("keyPassword")
+            storeFile file("${System.getProperty("user.home")}/Documents/up_dev_signature/up_dev.keystore")
+            storePassword keystoreProperties.getProperty("keystorePassword")
             v2SigningEnabled true
         }
     }
