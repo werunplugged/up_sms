@@ -39,7 +39,7 @@ android {
         versionNameSuffix '-alpha'
     }
 
-    def keystorePropertiesFile = rootProject.file("user.properties")
+    def keystorePropertiesFile = rootProject.file("${System.getProperty("user.home")}/Documents/up_dev_signature/signing.properties")
     def keystoreProperties = new Properties()
 
     if (keystorePropertiesFile.exists()) {
@@ -50,7 +50,7 @@ android {
         debug {
             keyAlias keystoreProperties.getProperty("keyAlias")
             keyPassword keystoreProperties.getProperty("keyPassword")
-            storeFile file('./signature/up_dev.keystore')
+            storeFile file("${System.getProperty("user.home")}/Documents/up_dev_signature/up_dev.keystore")
             storePassword keystoreProperties.getProperty("keystorePassword")
             v2SigningEnabled true
         }
